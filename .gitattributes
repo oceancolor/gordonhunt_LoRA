@@ -7,3 +7,7 @@
 *.md   text eol=lf
 *.txt  text eol=lf
 *.csv  text eol=lf
+
+# dotfiles 同样固定 LF，避免 Windows core.autocrlf=true 改写忽略规则文件
+.gitignore     text eol=lf
+.gitattributes text eol=lf
