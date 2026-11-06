@@ -1,0 +1,3 @@
+﻿source_file,group,target_name,title,source_url,source_platform,source_status,discovery_url,original_url,subject_tag,crop_x,crop_y,crop_w,crop_h,accessed_at,notes
+EXAMPLE_IGNORE_1.jpg,10_full,gh_000.jpg,Example full painting,https://example.invalid/work,gordon-hunt.co.uk,original,,,,horizon_sail,,,,2026-11-06,整画示例：自动去白边+裁底部8%；source_file 以 EXAMPLE 开头的行会被跳过
+EXAMPLE_IGNORE_2.jpg,3_dabs,gh_000.png,Example texture detail,https://example.invalid/work,gordon-hunt.co.uk,original,,,,dabs,100,100,800,800,2026-11-06,特写示例：四个 crop 坐标都填时自动改用裁框，不再去白边/裁签名

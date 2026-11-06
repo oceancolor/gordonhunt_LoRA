@@ -71,6 +71,15 @@
 
 > ⚠️ **Instagram 本机不可达**：不要为采图去搭建绕过手段——B 路径的「合法访问」是硬要件，绕过访问限制会让整条路径失效。建议在其余四类可达平台完成发现，或由你在合规网络环境下人工另存后，把文件与来源信息带回本机处理。
 
+**已指定入口（2026-11-06）**
+
+| 入口 | 实测 | 用法 |
+|---|---|---|
+| `https://www.gordon-hunt.co.uk/`（艺术家官网） | 200 ✅ | **优先回溯源**：从作品页取最高分辨率正面图，`source_url` 填这里，`source_status = original` |
+| `https://www.instagram.com/foweyartist/`（Instagram 账号） | 本机不可达 | 仅作发现渠道：把作品标题与账号链接记入 `discovery_url`，再回官网 / 画廊页反查原图；需你在合规网络环境下人工另存 |
+
+> 官网首页当前可抓取的正文极少（仅 "Welcome: Gordon Hunt Artist" 与 Fowey / Cornwall 工作室信息），疑似 JS 渲染或图片型站点；**作品页 URL 模式需在浏览器里人工确认后**再填入清单，不要在清单里只填首页地址。
+
 **本机网络补充**：`huggingface.co` / `civitai.com` 不通；`github.com` / `pypi.org` / `hf-mirror.com` 通。采集走浏览器逐张保存，不依赖这些站点。
 
 **来源回溯状态**（`manifest.local.csv` 可选列，不影响质检必需字段）：
@@ -97,10 +106,42 @@
 | 6 | 色彩 | 统一 sRGB；**不做**自动对比度 / 饱和度增强——高饱和高对比本身就是目标；带明显滤镜偏色的平台图直接弃用，不试图「校回来」 |
 | 7 | 格式与命名 | PNG 或 JPEG q≥95；`gh_001.jpg` … 纯 ASCII、无空格中文；图片与 caption 同名 |
 | 8 | 分组 | 整画 → `10_full/`；特写 → `3_dabs/` 或 `3_filaments/`；验证图 → `val/` |
-| 9 | 裁特写 | 从训练整画裁 512–1024 px **纯纹理块**：不含船、人、地平线。`3_dabs` 只放圆点/短椭圆光斑，`3_filaments` 只放白色卷曲焦散细线，两套笔触不要混 |
+| 9 | 裁特写 | 从训练整画裁 **768–1024 px 纯纹理块**（硬下限 640，见 3.1）：不含船、人、地平线。`3_dabs` 只放圆点/短椭圆光斑，`3_filaments` 只放白色卷曲焦散细线，两套笔触不要混 |
 | 10 | 隔离验证集 | 6–8 张独立作品、`source_status = original`，确认不出现在 `configs/dataset_sdxl.toml` 的任何 subset 里 |
 
 > 目录名前缀 `10_` / `3_` 是 **Kohya 的 repeats 约定**，`dataset_sdxl.toml` 里不要再写 `num_repeats`，否则次数相乘。
+
+### 3.1 批量清洗脚本 `tools/clean_dataset.py`
+
+**输入**：`dataset/_inbox/` 放原始下载图（任意文件名，脚本只读不改）；`dataset/collection_plan.csv` 是逐图清单（从 `collection_plan.template.csv` 复制后填写，**该文件与 `_inbox/` 均已 gitignored**）。
+
+```bash
+PY=/d/ComfyUI/.venv/Scripts/python.exe   # 本机已有 Pillow 11.1.0；或先 pip install Pillow 后用 python
+cp dataset/collection_plan.template.csv dataset/collection_plan.csv
+# ① 填好清单，先预览（默认 dry-run，不写任何文件）
+$PY tools/clean_dataset.py --root dataset
+# ② 确认无误再真正写入
+$PY tools/clean_dataset.py --root dataset --apply --report eval/clean_report.txt
+```
+
+> `/d/ComfyUI/.venv/Scripts/python.exe` 是本机现成环境的 Git Bash 路径示例；其他机器换成自己的 Python 即可（主 Python 执行 `pip install Pillow` 后同样能跑）。本机实测：主 Python 3.13 **无 Pillow**，ComfyUI venv 为 Python 3.12.9 + Pillow 11.1.0。
+
+脚本**不删改 `_inbox/` 原图、不覆盖已有输出**（除非 `--overwrite`）、**不创建 caption**（P2 再做）。
+
+| 清单列 | 必填 | 说明 |
+|---|---|---|
+| `source_file` / `group` / `source_url` / `source_status` | ✅ | `group` ∈ `10_full` / `3_dabs` / `3_filaments` / `val`；`source_status` ∈ `original` / `unverified` / `self-created` |
+| `target_name` | | 输出名如 `gh_001.jpg`；留空按行号自动生成 |
+| `title` / `source_platform` / `discovery_url` / `original_url` / `subject_tag` / `accessed_at` / `notes` | | 溯源与题材配比统计，一并写进台账 |
+| `crop_x` / `crop_y` / `crop_w` / `crop_h` | | **四个都填**才启用特写模式：按原图像素坐标裁框，跳过白边与签名裁切 |
+
+**处理链**：去近白白边（只裁「整条边缘都接近纯白」的边，浅色天空不会被误伤）→ 底部全宽裁 8% → 尺寸门槛 → aHash 近重复报告 → 写 `dataset/<group>/gh_NNN.jpg` → 生成 / 合并 `dataset/manifest.local.csv`（含 sha256、尺寸、`license=non-commercial-research`）。
+
+**尺寸口径修正**：`configs/dataset_sdxl.toml` 的 `min_bucket_reso = 640`，所以特写块 **640 px 是硬下限、建议 768–1024 px**；原文「512–1024」的下半段会被训练器 bucket 排除。整画硬下限 768、建议 ≥1024。脚本按组分别判定。
+
+常用开关：`--bottom-crop 0`（已手工裁过签名）、`--no-trim-border`、`--border-level 235`（画廊 JPEG 白边带压缩噪声时调低）、`--skip-duplicates`、`--overwrite`、`--dedup-threshold N`。
+
+> 清单请用 Excel / 表格软件编辑，**别手工数逗号**——列错位会让 `crop_*` 被误填而触发特写模式。脚本对缺列、非法 group、占位 URL、越界裁框都会直接报 ERROR，dry-run 阶段就能发现。近重复只在「整画 / 验证」与「特写」各自类别内比对，因为特写本来就是从整画裁出来的。
 
 ---
 
@@ -131,14 +172,14 @@ dataset/
 
 ## 5. 分工：需要你拍板 vs 我能代劳
 
-| 需要你本人 | 我能代劳（点头即可） |
+| 需要你本人 | 已由脚本 / 助手代劳 |
 |---|---|
-| 判断平台访问与保存方式是否符合「合法访问」、逐张保存 | 批量裁底部 8%、去白边、统一重命名 |
-| 用标题反查原始作品页、判定 `source_status` | 按标题 / URL 归并跨平台重复线索 |
-| 判断哪些是同一作品的不同版次 | aHash / pHash 近重复扫描并列出候选对 |
-| 判断特写属于「圆点」还是「焦散线」 | 按规则批量裁 512–1024 纯纹理块 |
-| 挑选哪 6–8 张做验证集（须 `original`） | 生成台账骨架、算 sha256 / 尺寸 |
-| 最终确认清洗后画面没有签名与平台文字残留 | 装 Pillow、跑质检、修脚本 |
+| 判断平台访问与保存方式是否符合「合法访问」、逐张另存到 `_inbox/` | ✅ `clean_dataset.py`：裁底部 8%、去白边、重命名、统一格式 |
+| 用标题反查原始作品页、判定 `source_status`、填 `collection_plan.csv` | ✅ 按清单回填 `source_url` 等溯源字段 |
+| 判断哪些是同一作品的不同版次 | ✅ aHash 近重复报告（`--skip-duplicates` 可自动跳过）；跨平台标题归并仍需人工确认 |
+| 判断特写属于「圆点」还是「焦散线」、给出 crop 坐标 | ✅ 按坐标批量裁 768–1024 纯纹理块 |
+| 挑选哪 6–8 张做验证集（须 `original`） | ✅ 自动生成 / 合并 `manifest.local.csv`，算 sha256 与尺寸 |
+| 最终确认清洗后画面没有签名与平台文字残留 | ✅ 跑 `audit_dataset.py` 质检、修脚本 |
 
 ---
 
@@ -150,7 +191,8 @@ dataset/
 - [ ] 无同作品多版次重复（含跨平台重复）；`val/` 与训练组无画面重叠
 - [ ] 每条台账都有 `source_url` 与 `non-commercial-research`，并标注了 `source_status`
 - [ ] `unverified` 来源 ≤16 张且**全部不在 `val/`**
-- [ ] `git status` 里**看不到**任何图片、caption 或 `manifest.local.csv`
+- [ ] `tools/clean_dataset.py --root dataset` dry-run 无 ERROR；`--apply` 后 `eval/clean_report.txt` 的 WARN 已逐条人工确认
+- [ ] `git status` 里**看不到**任何图片、caption、`_inbox/` 原图、`collection_plan.csv` 或 `manifest.local.csv`
 
 ---
 

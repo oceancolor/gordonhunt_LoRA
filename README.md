@@ -43,10 +43,13 @@ LoRA/
 │   └── sample_prompts.txt                      训练期固定采样提示
 ├── dataset/
 │   ├── README.md                               授权与目录规范
-│   ├── manifest.csv                            逐图溯源台账（必填）
+│   ├── collection_plan.template.csv            采集清单模板（复制后填，不提交）
+│   ├── manifest.csv                            台账模板（真实台账写 manifest.local.csv）
+│   ├── _inbox/                                 原始下载图（gitignored）
 │   ├── 10_full/  3_dabs/  3_filaments/         训练分组（数字=repeats）
 │   └── val/                                    验证集，不参与训练
 ├── tools/
+│   ├── clean_dataset.py                        P1 批量清洗（默认 dry-run）
 │   ├── caption_vocab.md                        标注词表与示例
 │   └── audit_dataset.py                        数据集质检脚本
 ├── eval/scorecard.csv                          结构化评分表
@@ -58,7 +61,7 @@ LoRA/
 
 | # | 动作 | 命令 / 文件 |
 |---|---|---|
-| 1 | ~~确定授权路径~~ **已定 B**，按 B 的约束采集并清洗图片 | `docs/P1_collection_spec.md`、`dataset/README.md` |
+| 1 | ~~确定授权路径~~ **已定 B**：逐张另存到 `dataset/_inbox/`、填采集清单，再跑批量清洗 | `docs/P1_collection_spec.md` 第 3.1 节；`tools/clean_dataset.py`（默认 dry-run，`--apply` 才写入） |
 | 2 | 按分组放图 + 同名 `.txt` caption，填溯源台账 | `tools/caption_vocab.md`、`dataset/manifest.csv` |
 | 3 | 质检必须全绿 | `python tools/audit_dataset.py --root dataset` |
 | 4 | 先跑 40 步 smoke test，再跑正式训练 | `configs/train_sdxl.sh`（改 `--max_train_steps=40`） |
