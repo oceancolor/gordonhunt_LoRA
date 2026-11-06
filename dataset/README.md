@@ -10,7 +10,9 @@
 | **B 非商业个人研究** | 本地实验、不分发 | 合法访问 + 纯非商业研究 + 充分标注来源；不公开权重、不公开数据集、不商用输出 |
 | **C 要素抽象重绘** | 想要可商用、可发布的模型 | **不复制原作**：按「离散光斑 / 冷暖对比 / 平面化色块 / 剪影 / 俯视」等抽象维度，用自有或授权素材重绘或程序化合成 |
 
-本仓库默认按 **B 或 C** 组织。走 A 时把授权凭证路径填进台账。本说明不构成法律意见。
+**当前已锁定路径 B（2026-11-06）**，详见 `docs/P1_collection_spec.md`。走 A 时把授权凭证路径填进台账。本说明不构成法律意见。
+
+> **B 路径下的台账**：`manifest.csv` 是提交进公开仓库的**空模板**，请保持原样。真实台账写到 `dataset/manifest.local.csv`（已被 `.gitignore` 忽略），字段相同，`license` 统一填 `non-commercial-research`，`permission_ref` 留空，`source_url` 精确到作品页。`tools/audit_dataset.py` 会优先读取 local 台账并校验 license 与当前路径一致。多平台采集时可自行追加 `title / accessed_at / source_platform / discovery_url / original_url / source_status` 列（质检只校验必需字段，多余列忽略）；来源分级与回溯规则见 `docs/P1_collection_spec.md` 第 2 节。
 
 ## 2. 目录与命名
 

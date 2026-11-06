@@ -36,6 +36,18 @@ except ImportError:
     Image = None
 
 TRIGGER = "glntwtr"
+# P0 decision (2026-11-06): path B = non-commercial personal research.
+# See README.md "当前决策" and docs/P1_collection_spec.md.
+ACTIVE_PATH = "B"
+EXPECTED_LICENSE = {
+    "A": "licensed-for-finetune",
+    "B": "non-commercial-research",
+    "C": "self-created",
+}
+# Real manifest contains per-image source URLs and must stay local on path B.
+# The committed manifest.csv is an empty template only.
+MANIFEST_LOCAL = "manifest.local.csv"
+MANIFEST_TEMPLATE = "manifest.csv"
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
 MIN_SHORT_SIDE = 1024
 HARD_MIN_SHORT_SIDE = 768
@@ -242,31 +254,46 @@ def main():
         rep.ok(f"val/ 含 {len(images_in(val))} 张验证图（未列入 dataset_sdxl.toml）")
 
     rep.section("溯源台账")
-    mf = root / "manifest.csv"
+    local = root / MANIFEST_LOCAL
+    template = root / MANIFEST_TEMPLATE
+    mf = local if local.exists() else template
+    rep.lines.append(f"[INFO] 台账来源: {mf.name}"
+                     + ("（本机，不入库）" if mf == local else "（公开模板）"))
+    if mf == template and ACTIVE_PATH == "B" and all_imgs:
+        rep.warn("正在读取提交的空模板台账；路径 B 下真实台账请写 dataset/manifest.local.csv")
     if not mf.exists():
-        rep.error(f"缺少 {mf}")
+        rep.error(f"缺少台账文件: {mf}")
     else:
         with mf.open("r", encoding="utf-8-sig", newline="") as f:
             reader = csv.DictReader(f)
             fields = reader.fieldnames or []
             missing = [c for c in MANIFEST_FIELDS if c not in fields]
             if missing:
-                rep.error(f"manifest.csv 缺字段: {', '.join(missing)}")
+                rep.error(f"{mf.name} 缺字段: {', '.join(missing)}")
             else:
-                rep.ok("manifest.csv 字段齐全")
+                rep.ok(f"{mf.name} 字段齐全")
             rows = [r for r in reader if r.get("file") and not str(r["file"]).startswith("EXAMPLE")]
         indexed = {r["file"].strip() for r in rows}
         for img in all_imgs:
             if img.name not in indexed:
-                rep.error(f"manifest.csv 缺少记录: {img.name}")
+                rep.error(f"{mf.name} 缺少记录: {img.name}")
         no_perm = [r["file"] for r in rows
                    if not (r.get("license") or "").strip()
                    or not (r.get("source_url") or "").strip()]
         if no_perm:
-            rep.warn(f"{len(no_perm)} 条记录缺 license/source_url：商用前必须补齐授权凭证")
+            rep.warn(f"{len(no_perm)} 条记录缺 license/source_url：B 路径要求充分标注来源")
+        expected = EXPECTED_LICENSE[ACTIVE_PATH]
+        bad_license = [r["file"] for r in rows
+                       if (r.get("license") or "").strip() != expected]
+        if bad_license:
+            rep.error(f"{len(bad_license)} 条 license 与当前路径 {ACTIVE_PATH} 不符"
+                      f"（应为 {expected}）: {', '.join(bad_license[:5])}"
+                      + (" …" if len(bad_license) > 5 else ""))
+        elif rows:
+            rep.ok(f"license 与当前授权路径 {ACTIVE_PATH} 一致（{expected}）")
         if rows:
-            rep.ok(f"manifest.csv 有效记录 {len(rows)} 条")
-        rep.lines.append("[INFO] 授权路径见 dataset/README.md；本检查不验证授权真实性")
+            rep.ok(f"{mf.name} 有效记录 {len(rows)} 条")
+        rep.lines.append("[INFO] 授权路径见 README.md / dataset/README.md；本检查不验证授权真实性")
 
     rep.section("结论")
     rep.lines.append(f"ERROR={rep.errors}  WARN={rep.warnings}  图片={len(all_imgs)}")

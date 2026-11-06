@@ -28,6 +28,9 @@ dataset/3_filaments/*
 dataset/val/*
 !dataset/**/.gitkeep
 
+# P0 = B：真实台账含逐图来源链接，仅本机保存，不入公开仓库
+dataset/manifest.local.csv
+
 # 本机生成的配置（由 train_sdxl.sh 从模板生成）
 configs/dataset_sdxl.local.toml
 
