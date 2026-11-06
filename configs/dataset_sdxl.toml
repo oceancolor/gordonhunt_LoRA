@@ -1,0 +1,49 @@
+# Kohya sd-scripts — dataset_config.toml TEMPLATE for the glntwtr style LoRA
+# Docs: docs/Gordon_Hunt_style_research_and_LoRA_plan.md  (section 4 / 5)
+#
+# @PROJECT_ROOT@ is a placeholder. `configs/train_sdxl.sh` substitutes it with
+# the real checkout path and writes configs/dataset_sdxl.local.toml (gitignored).
+# Running sd-scripts directly? Replace @PROJECT_ROOT@ yourself first.
+#
+# IMPORTANT:
+#  - Folder names carry the repeat count (10_full, 3_dabs, 3_filaments).
+#    Kohya parses the leading "N_" as repeats. DO NOT also set num_repeats
+#    in the subsets below, or the two values multiply.
+#  - keep_tokens=1 pins the trigger word at the front of every caption.
+#  - caption_dropout_rate requires captions that actually differ from each other.
+#  - Do NOT enable --cache_text_encoder_outputs together with caption dropout
+#    / shuffle_caption (sd-scripts will silently ignore the caption variation).
+
+[general]
+shuffle_caption = true
+caption_extension = ".txt"
+keep_tokens = 1
+caption_dropout_rate = 0.05
+enable_bucket = true
+bucket_no_upscale = true
+resolution = 1024
+min_bucket_reso = 640
+max_bucket_reso = 1280
+bucket_reso_steps = 64
+# Leave OFF for v1: horizontal flip may mirror a missed signature into the
+# lower-right corner. Enable only as a deliberate v2 ablation.
+flip_aug = false
+color_aug = false
+random_crop = false
+
+[[datasets]]
+batch_size_per_device = 1
+
+  # 56 full paintings: composition, silhouettes, negative space, backlight
+  [[datasets.subsets]]
+  image_dir = "@PROJECT_ROOT@/dataset/10_full"
+
+  # 12 close crops: round / elliptical glint dabs
+  [[datasets.subsets]]
+  image_dir = "@PROJECT_ROOT@/dataset/3_dabs"
+
+  # 12 close crops: white caustic filament lines
+  [[datasets.subsets]]
+  image_dir = "@PROJECT_ROOT@/dataset/3_filaments"
+
+# Validation images live in dataset/val/ and are intentionally NOT listed here.

@@ -1,0 +1,9 @@
+# Fixed prompts for --sample_prompts during training (Kohya sd-scripts).
+# One prompt per line; identical seeds are used across checkpoints.
+# Keep this file SHORT: it runs every 200 steps.
+
+glntwtr, a single dark sailboat, high horizon line, backlit low sun, blue with gold glints, vast negative space --w 1024 --h 1024 --s 28
+glntwtr, two swimmers seen from above, overhead view no horizon, turquoise and deep navy --w 1024 --h 1024 --s 28
+glntwtr, an empty shoreline, low oblique coastline, sunrise reflection band, sand beige and dark blue --w 1024 --h 1024 --s 28
+glntwtr, an alpine lake at dusk, high horizon line, cool blue with orange accents --w 1024 --h 1024 --s 28
+a calm coastal landscape at noon, simple composition --w 1024 --h 1024 --s 28

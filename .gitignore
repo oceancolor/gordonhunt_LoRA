@@ -1,0 +1,42 @@
+# WorkBuddy 项目私有数据（会话记忆等），不入库
+.workbuddy/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 训练产物：权重与采样输出（体积大，且不随仓库分发）
+output/*
+samples/*
+!output/.gitkeep
+!samples/.gitkeep
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.onnx
+
+# 数据集图像与标注：可能含受版权保护的作品，不入库
+# 只提交目录骨架（.gitkeep）、README 与 manifest 模板
+dataset/10_full/*
+dataset/3_dabs/*
+dataset/3_filaments/*
+dataset/val/*
+!dataset/**/.gitkeep
+
+# 本机生成的配置（由 train_sdxl.sh 从模板生成）
+configs/dataset_sdxl.local.toml
+
+# 日志与质检报告
+*.log
+eval/dataset_audit_report.txt
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

@@ -1,0 +1,45 @@
+# Evaluation grid + inference templates for the glntwtr style LoRA
+# Scoring: eval/scorecard.csv  |  Rationale: docs/... section 8 / 9
+#
+# Protocol: for EVERY checkpoint, render these prompts at LoRA weights
+# 0.6 / 0.8 / 1.0 with a FIXED seed and a FIXED base checkpoint.
+# Do not change anything else between checkpoints.
+
+## ---------- T1: direct trigger (is the style present?) ----------
+glntwtr, a single dark sailboat on open water, high horizon line, backlit low sun, blue with gold glints, vast negative space
+glntwtr, two swimmers seen from above, overhead view no horizon, turquoise and deep navy, small subjects lower left
+glntwtr, an empty shoreline, low oblique coastline, sunrise reflection band, sand beige and dark blue
+
+## ---------- T2: generalization (subjects ABSENT from training data) ----------
+glntwtr, a still alpine lake at dusk, high horizon line, cool blue with orange accents, minimal composition
+glntwtr, a city waterfront at noon, eye-level sea level, teal with lime shallows, small subject off-center right
+glntwtr, an indoor swimming pool seen from above, overhead view no horizon, turquoise and deep navy
+glntwtr, a night harbour with reflected lights, high horizon line, warm evening glints
+
+## ---------- T3: prompt adherence (trigger must coexist with other demands) ----------
+glntwtr, three moored boats, low oblique coastline, midday glare, sand beige and dark blue, diagonal sand wedge
+glntwtr, one sailboat positioned far right, high horizon line, sunrise reflection band, sparse highlights
+glntwtr, two swimmers lower right, overhead view no horizon, dense dotted glints, turquoise and deep navy
+glntwtr, a quiet beach with a single figure, low oblique coastline, backlit low sun, cool blue with orange accents, vast negative space
+
+## ---------- T4: leakage (NO trigger word; base model should stay neutral) ----------
+a calm coastal landscape at noon, simple composition
+a sailboat on the sea, natural daylight
+a mountain lake, soft afternoon light
+
+## ---------- Inference templates ----------
+POSITIVE: glntwtr, <subject>, <view>, <light>, <palette>, <composition>, masterful light on water
+NEGATIVE: photorealistic, photo, lens flare, bokeh, watercolor wash, wet paper texture, visible brush sweeping, thick impasto, smooth gradient, soft blending, muddy colors, desaturated, detailed faces, cluttered composition, text, signature, watermark, frame, border
+
+## ---------- Suggested inference settings (SDXL) ----------
+LoRA weight   : 0.65 - 0.90 (above 1.0 hardens texture and locks composition)
+CFG           : 5 - 7
+Sampler/steps : DPM++ 2M Karras / 28-35
+Hires fix     : denoise ~0.45 (too high smears the dots into mush)
+Glint density : prompt modifier OR weight adjustment, never both at once
+
+## ---------- Stop criteria ----------
+Pick the EARLIEST checkpoint that scores >= 80 and still responds to T2/T3.
+If later checkpoints look more like the training images but lose flexibility, stop.
+Overtraining signs: repeated backgrounds, locked compositions, one smeared palette
+for every prompt, harsh texture, colour drift, T4 leakage.

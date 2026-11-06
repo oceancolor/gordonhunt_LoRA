@@ -1,0 +1,86 @@
+# Phase B TEMPLATE for FLUX.1-dev via AI-Toolkit (ostris).
+# NOTE: AI-Toolkit's schema changes between releases. Treat this as a field map,
+# not a copy-paste runnable config: verify keys against the version you install.
+# Rationale: docs/Gordon_Hunt_style_research_and_LoRA_plan.md (section 6.1)
+#
+# @PROJECT_ROOT@ is a placeholder: replace it with your checkout path, or make
+# a local (gitignored) copy of this file before running.
+
+job: extension
+
+config:
+  name: "glntwtr_flux_v1"
+
+  process:
+    - type: "sd_trainer"
+      training_folder: "@PROJECT_ROOT@/output"
+      device: cuda
+      trigger_word: "glntwtr"
+
+      network:
+        type: "lora"
+        linear: 16          # 16-32 for Flux; sweep, higher = easier texture overfit
+        linear_alpha: 16
+
+      model:
+        name_or_path: "black-forest-labs/FLUX.1-dev"
+        is_flux: true
+        quantize: true      # needed for <=24 GB
+        low_vram: true
+
+      datasets:
+        - folder_path: "@PROJECT_ROOT@/dataset/10_full"
+          caption_ext: "txt"
+          caption_dropout_prob: 0.05
+          shuffle_tokens: true
+          resolution: [1024]
+          cache_latents_to_disk: true
+        - folder_path: "@PROJECT_ROOT@/dataset/3_dabs"
+          caption_ext: "txt"
+          caption_dropout_prob: 0.05
+          shuffle_tokens: true
+          resolution: [1024]
+          cache_latents_to_disk: true
+        - folder_path: "@PROJECT_ROOT@/dataset/3_filaments"
+          caption_ext: "txt"
+          caption_dropout_prob: 0.05
+          shuffle_tokens: true
+          resolution: [1024]
+          cache_latents_to_disk: true
+
+      train:
+        batch_size: 1
+        steps: 2000                 # Flux style range 1000-2500
+        gradient_accumulation: 1
+        train_unet: true
+        train_text_encoder: false  # Flux: T5 is huge; keep off for a style run
+        gradient_checkpointing: true
+        noise_scheduler: "flowmatch"
+        optimizer: "adamw8bit"
+        lr: 1e-4                   # sweep 5e-5 -> 2e-4; Flux is unforgiving here
+        dtype: bf16
+
+      save:
+        dtype: float16
+        save_every: 250
+        max_step_saves_to_keep: 8
+
+      sample:
+        sampler: "flowmatch"
+        sample_every: 250
+        width: 1024
+        height: 1024
+        sample_steps: 28
+        guidance_scale: 3.5
+        seed: 42
+        walk_seed: false
+        neg: "photorealistic, photo, lens flare, bokeh, watercolor wash, smooth gradient, soft blending, text, signature, watermark, frame"
+        prompts:
+          - "glntwtr, a single dark sailboat, high horizon line, backlit low sun, blue with gold glints, vast negative space"
+          - "glntwtr, two swimmers seen from above, overhead view no horizon, turquoise and deep navy"
+          - "glntwtr, an alpine lake at dusk, low oblique coastline, cool blue with orange accents"
+          - "a calm coastal landscape at noon"   # leakage test: no trigger word
+
+meta:
+  name: "glntwtr_flux_v1"
+  version: "1.0"

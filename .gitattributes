@@ -1,0 +1,9 @@
+# 保证脚本与配置在任何平台检出后都是 LF（Windows 下 .sh 带 CRLF 会无法执行）
+*.sh   text eol=lf
+*.py   text eol=lf
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.md   text eol=lf
+*.txt  text eol=lf
+*.csv  text eol=lf
